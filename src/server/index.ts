@@ -1,32 +1,37 @@
 import express,{Request, Response} from "express";
 import path from "path"
 import {PORT} from "../config/config"
-const AppServer: express.Application = express();
 import cors from "cors"
-console.log("Hola");
-
+import RouterUser from "../router/router";
+import fileUpload from "express-fileupload";
+const AppServer: express.Application = express();
 const startServer = () => {
     try {
-        AppServer.use((req:Request, res:Response, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Authorization, X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-COntrol-Allow-Request-Method');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-    res.header('Allow', 'GET, POST, OPTIONS, PUT, DELETE');
-    next();
-}) 
-        const DIRECTORIO_PERMITIDO_CORS = "http://localhost:4200";
-        AppServer.use( cors( {
-            origin: DIRECTORIO_PERMITIDO_CORS,
-            optionsSuccessStatus: 200
-        }))
+        const urlConnectionAcceso:string = "http://localhost:3001"
+        const statusCors:number = 200;
         const port: Number = 8080;
+        AppServer.use(cors({
+            origin: [urlConnectionAcceso, 'https://www.google.com/*'],
+            methods: ['GET','POST','DELETE','UPDATE','PUT','PATCH'],
+            optionsSuccessStatus:statusCors
+        }));
         AppServer.use( express.static( path.join( __dirname, "public" ) ) );
         AppServer.use( express.json() );
         AppServer.use( express.urlencoded( { extended: true } ) )
     
         AppServer.listen( PORT || port, () => {
-            console.log( "Estas conectado en el puerto:", PORT );
+        
+            console.log( "connection in the port: :", PORT );
+        
         } )
+        AppServer.use( fileUpload( {
+            useTempFiles: true,
+            createParentPath: true,
+            safeFileNames: true,
+            preserveExtension: true,
+            tempFileDir: path.join( __dirname, "tmp" )
+        } ) )
+        AppServer.use(new RouterUser().routerLogin() );
     } catch ( error:any ) {
         
         throw new Error( error );
