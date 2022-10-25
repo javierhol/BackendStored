@@ -1,11 +1,20 @@
 import bycrpt from 'bcrypt';
 import { Request, Response, NextFunction, response } from 'express';
-import { login } from "../interfaces/users"
+import { login, PersonRegister } from "../interfaces/users"
+
 import jwt from "jsonwebtoken"
 import { SECRET } from "../config/config";  // <--- this is the problem
 
-abstract class LoginRegister
-{
+abstract class LoginRegister{
+
+    public async RegisterUser(req : Partial< Request>, res : Response, next : Partial<NextFunction> ) : Promise<Response | Request | any>{
+        try {
+            
+        } catch (error:any) {
+             throw new Error(error)
+
+        }
+    }
 
     public async LoginAuth( req: Partial< Request>, res:Response, next: Partial<NextFunction> ): Promise<Response | Request | any>  {
     

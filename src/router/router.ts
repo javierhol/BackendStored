@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { Request, Response, NextFunction } from "express";
 import LoginRegister from "../controllers/GestionUser";
+
 const router: Router = Router();
 
- class RouterUser extends LoginRegister
+abstract class  RouterUser extends LoginRegister
 {
     public routerLogin() {
         
@@ -11,7 +12,14 @@ const router: Router = Router();
         return router;
     }
     
-}
+     public register (){
+        router.post( "/register", this.RegisterUser);
+        
+     }
+
+     
+        
+    }
     
 
 export default RouterUser;
