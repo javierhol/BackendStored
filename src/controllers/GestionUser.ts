@@ -2,9 +2,8 @@ import bycrpt from 'bcrypt';
 import { Request, Response, NextFunction, response } from 'express';
 import { login, PersonRegister } from "../interfaces/users"
 import { connect } from '../database/database';
-
 import jwt from "jsonwebtoken"
-import { SECRET } from "../config/config";  // <--- this is the problem
+import { SECRET } from '../config/config';  // <--- this is the problem
 
 abstract class LoginRegister{
 
@@ -32,13 +31,14 @@ abstract class LoginRegister{
                 const conn = await connect();
                 const response:any =await conn.query( `INSERT INTO admin (correo,password,authCuenta) VALUES (?,?,?)`,
                     [data.correo, data.password, state]);
-
-                    console.log(response.rows);
-                    
-                     }
-            
-    
-            
+                return res.status( 200 ).json( {
+                    message: "Usuario registrado correctamente",
+                } );
+            } else {
+                return res.status( 400 ).json( {
+                    message: "Datos incorrectos"
+                } );
+            }
         } catch (error:any) {
             throw new Error(error);
 
