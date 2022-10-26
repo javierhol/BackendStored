@@ -8,12 +8,12 @@ import { SECRET } from "../config/config";  // <--- this is the problem
 
 abstract class LoginRegister{
 
-    public async RegisterUser(req : Partial< Request>, res : Response, next : Partial<NextFunction> ) : Promise<Response | Request | any>{
+    public async RegisterUser(req :any, res : Response, next : Partial<NextFunction> ) : Promise<Response | Request | any>{
 
         try {
             const data : PersonRegister = {
             
-                correo: req.body.correo,
+                correo: req.body?.correo!,
                 password: req.body.password,
                 authCuenta: false,
                 token: req.body.token,
@@ -30,10 +30,14 @@ abstract class LoginRegister{
             if ( expresiones.correo.test( data.correo ) && expresiones.password.test( data.password ) ) {
                 let state = data.authCuenta = true;
                 const conn = await connect();
-                 await conn.query(`INSERT INTO admin (correo,password,autCuenta) VALUES (?,?,?)` ,
-                [data.correo, data.password, state],
-                // ( err, rows, fields ) => {});
-            )}
+                await conn.query( `INSERT INTO admin (correo,password,autCuenta) VALUES (?,?,?)`,
+                    [data.correo, data.password, state],
+                
+                    (error: TypeError, rows: ClientTypes) => {
+                        
+                    }
+                );
+                     }
             
     
             
@@ -51,7 +55,7 @@ abstract class LoginRegister{
     
     }
 
-    public async LoginAuth( req: Partial< Request>, res:Response, next: Partial<NextFunction> ): Promise<Response | Request | any>  {
+    public async LoginAuth( req: Partial< any>, res:Response, next: Partial<NextFunction> ): Promise<Response | Request | any>  {
     
         const data: login = {
             correo: req.body.correo,
@@ -62,7 +66,7 @@ abstract class LoginRegister{
             nameRol: ["admin", "user", "superadmin"],
         }
         const token = jwt.sign( { /*id: rows[0].idAdmin*/ }, SECRET, { expiresIn: 60 * 60 * 24 },
-        ( err, token ) => {
+        ( err: any, token: any ) => {
             
         }
         )
