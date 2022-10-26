@@ -1,11 +1,9 @@
-
 import express,{Request, Response} from "express";
 import path from "path"
 import {PORT} from "../config/config"
 import cors from "cors"
 import RouterUser from "../router/router";
 import fileUpload from "express-fileupload";
-import router from "../routes/authUsers";
 const AppServer: express.Application = express();
 const startServer = () => {
     try {

@@ -9,9 +9,7 @@ export async function connect() {
         port: 3306,
         database: 'stored',
         connectionLimit: 10
-    }
-
-    );
+    });
 
 
     return connection;
