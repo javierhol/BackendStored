@@ -14,6 +14,7 @@ class  RouterUser extends LoginRegister
     
      public register (){
         router.post( "/register", this.RegisterUser);
+        return router;
         
      }
 

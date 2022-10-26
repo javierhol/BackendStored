@@ -30,13 +30,11 @@ abstract class LoginRegister{
             if ( expresiones.correo.test( data.correo ) && expresiones.password.test( data.password ) ) {
                 let state = data.authCuenta = true;
                 const conn = await connect();
-                await conn.query( `INSERT INTO admin (correo,password,autCuenta) VALUES (?,?,?)`,
-                    [data.correo, data.password, state],
-                
-                    (error: TypeError, rows: ClientTypes) => {
-                        
-                    }
-                );
+                const response:any =await conn.query( `INSERT INTO admin (correo,password,authCuenta) VALUES (?,?,?)`,
+                    [data.correo, data.password, state]);
+
+                    console.log(response.rows);
+                    
                      }
             
     

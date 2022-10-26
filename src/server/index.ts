@@ -34,7 +34,7 @@ const startServer = () => {
             preserveExtension: true,
             tempFileDir: path.join( __dirname, "tmp" )
         } ) )
-        AppServer.use(new RouterUser().routerLogin() );
+        AppServer.use(new RouterUser().register());  
     } catch ( error:any ) {
         
         throw new Error( error );
