@@ -1,10 +1,10 @@
 interface PersonLogin {
 
-    email: string;
+    correo: string;
     password: string;
-    auth:Boolean;
+    authCuenta:Boolean;
 }
-export interface PersonRegister extends Pick<PersonLogin, "email" | "password"|"auth"> {}
+export interface PersonRegister extends Pick<PersonLogin, "correo" | "password"|"authCuenta"> {}
 export interface Roles {
      nameRol: Array<string>;
 }
@@ -12,7 +12,7 @@ export interface PersonRegister extends Pick<Roles, "nameRol"> {
      token: string;
     refreshToken: string;
 }
-export interface login extends Pick<PersonLogin, "email" | "password" | "auth"> {
+export interface login extends Pick<PersonLogin, "correo" | "password" | "authCuenta"> {
     token: string;
     refreshToken: string;
 }

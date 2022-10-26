@@ -4,7 +4,7 @@ import LoginRegister from "../controllers/GestionUser";
 
 const router: Router = Router();
 
-abstract class  RouterUser extends LoginRegister
+class  RouterUser extends LoginRegister
 {
     public routerLogin() {
         

@@ -5,6 +5,7 @@ import {PORT} from "../config/config"
 import cors from "cors"
 import RouterUser from "../router/router";
 import fileUpload from "express-fileupload";
+import router from "../routes/authUsers";
 const AppServer: express.Application = express();
 const startServer = () => {
     try {
@@ -19,6 +20,7 @@ const startServer = () => {
         AppServer.use( express.static( path.join( __dirname, "public" ) ) );
         AppServer.use( express.json() );
         AppServer.use( express.urlencoded( { extended: true } ) )
+       
     
         AppServer.listen( PORT || port, () => {
         
