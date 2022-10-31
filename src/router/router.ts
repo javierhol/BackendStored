@@ -6,9 +6,9 @@ const router: Router = Router();
 
 class  RouterUser extends LoginRegister
 {
-    public routerLogin() {
+    public Login() {
         
-        router.get( "/login", this.LoginAuth);
+        router.post( "/login", this.LoginAuth);
         return router;
     }
     

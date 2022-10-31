@@ -1,7 +1,7 @@
-import bycrpt from "bcrypt";
+import bcrypt from "bcrypt";
 import { Request, Response, NextFunction, response } from "express";
 import { login, PersonRegister } from "../interfaces/users";
-import { connect } from "../database/database";
+import { conexion } from "../database/database";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/config"; // <--- this is the problem
 import {transporter} from "../config/mailer";
@@ -18,41 +18,45 @@ abstract class LoginRegister {
         authCuenta: false,
         token: req.body.token,
         refreshToken: req.body.refreshToken,
-        nameRol: ["admin", "user", "superadmin"],
+        nameRol: "admin",
       };
       const expresiones = {
-        usuario: /^[a-zA-Z0-9\_\-]{4,16}$/, // Letras, numeros, guion y guion_bajo
-        nombre: /^[a-zA-ZÀ-ÿ\s]{1,40}$/, // Letras y espacios, pueden llevar acentos.
-        password: /^.{4,20}$/, // 4 a 12 digitos.
+        password: /^.{4,20}$/, 
         correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-        telefono: /^\d{7,14}$/, // 7 a 14 numeros.
       };
-        const salt = await bycrpt.genSalt(10);
-        const password = await bycrpt.hash(data.password, salt);
-
+      
       if (
         expresiones.correo.test(data.correo) &&
         expresiones.password.test(data.password)
       ) {
+          const roundNumber = 10;
+        const encriptarPassword = await bcrypt.genSalt( roundNumber );
+        const hasPassword = await bcrypt.hash( data.password, encriptarPassword );
         let state = (data.authCuenta = true);
-        const conn = await connect();
-        const response: any = await conn.query(
-          `INSERT INTO admin (correo,password,authCuenta) VALUES (?,?,?)`,
-          [data.correo,password, state]
-        );
-
-        const token = jwt.sign(
-          { id: response.id },
-          SECRET || "tokenGenerate",
-          { expiresIn: 60 * 60 * 24 }
-        );
-        return res.status(200).json({
-          message: "Usuario registrado correctamente",
-          token
-        });
+        const conn = await conexion.connect();
+         await conn.query(
+          `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
+          [data.correo, hasPassword, data.nameRol, state], ( error: Array<Error>|any, rows: any ) => {
+            console.log( error );
+            console.log(rows);
+            if ( error ) return res.json( { message: "ERROR_DATA_ADMIN",error:error } )
+            
+            if ( rows ) {
+              const token:any = jwt.sign(
+              { id: data.correo },
+              SECRET || "tokenGenerate",
+              { expiresIn: 60 * 60 * 24 }
+              );
+              
+            return res.json({
+              message: "USER_CREATE_SUCCESFULL",
+              token, auht:data.authCuenta
+            });
+            }
+        } ); 
       } else {
-        return res.status(400).json({
-          message: "Datos incorrectos",
+        return res.json({
+          message: "DATA_NOT_VALID",
         });
       }
     } catch (error: any) {
@@ -71,16 +75,56 @@ abstract class LoginRegister {
       authCuenta: true,
       token: req.body.token,
       refreshToken: req.body.refreshToken,
-      nameRol: ["admin", "user", "superadmin"],
     };
-    const token = jwt.sign(
-      {
-        /*id: rows[0].idAdmin*/
-      },
-      SECRET || "tokenGenerate",
-      { expiresIn: 60 * 60 * 24 },
-      (err: any, token: any) => {}
-    );
+    const conn = await conexion.connect();
+    const expresiones = {
+      password: /^.{4,20}$/,
+      correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
+    };
+
+    // if (req.headers["authorization-google"]) {
+      
+    //   conn.query("")
+    // }
+      
+      if (
+        expresiones.correo.test(data.correo) &&
+        expresiones.password.test(data.password)
+      ) {
+
+
+        conn.query( "SELECT password,idAdmin,rol FROM admin WHERE correo = ?", [data.correo],
+          async ( error: Array<Error> | any, rows: any ) => {
+            if ( error ) return res.json( { message: "ERROR_AUTH_ADMIN", error: error } )
+            if ( rows ) {
+    
+              const password = rows[0].password;
+              console.log(rows);
+               const passVerify:(Boolean) = await bcrypt.compare( req.body.password, password);
+              if (passVerify) {
+                const token:any = jwt.sign(
+                  { id:  rows[0].idAdmin },
+                  SECRET || "tokenGenerate",
+                  { expiresIn: 60 * 60 * 24 }
+                );
+                return res.json({
+                  message: "USER_AUTH_SUCCESFULL",
+                  token:token, auht:data.authCuenta, rol:rows[0].rol
+                });
+              } else {
+                 return res.json({
+                  message: "USER_AUTH_ERROR_DATA",
+                  token: null, auht:false
+                });
+                
+              }
+            }
+          } );
+      } else {
+           return res.json({
+          message: "DATA_NOT_VALID",
+        });
+      }
   }
 }
 

@@ -6,7 +6,7 @@ interface PersonLogin {
 }
 export interface PersonRegister extends Pick<PersonLogin, "correo" | "password"|"authCuenta"> {}
 export interface Roles {
-     nameRol: Array<string>;
+     nameRol: String;
 }
 export interface PersonRegister extends Pick<Roles, "nameRol"> {
      token: string;
@@ -16,4 +16,4 @@ export interface login extends Pick<PersonLogin, "correo" | "password" | "authCu
     token: string;
     refreshToken: string;
 }
-export interface login extends Pick<Roles, "nameRol"> {}
+

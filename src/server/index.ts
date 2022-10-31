@@ -33,6 +33,7 @@ const startServer = () => {
             tempFileDir: path.join( __dirname, "tmp" )
         } ) )
         AppServer.use(new RouterUser().register());  
+        AppServer.use(new RouterUser().Login());  
     } catch ( error:any ) {
         
         throw new Error( error );
