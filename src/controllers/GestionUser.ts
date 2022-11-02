@@ -126,6 +126,14 @@ abstract class LoginRegister {
         });
       }
   }
+
+
+  public async  usuarioRegister(req: Partial<Request>,res:Partial<Response>): Promise<void>  {
+
+  const conn = await conexion.connect();
+
+
+  }
 }
 
 export default LoginRegister;
