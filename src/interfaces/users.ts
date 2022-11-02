@@ -1,5 +1,4 @@
 interface PersonLogin {
-
     correo: string;
     password: string;
     authCuenta:Boolean;
@@ -15,5 +14,11 @@ export interface PersonRegister extends Pick<Roles, "nameRol"> {
 export interface login extends Pick<PersonLogin, "correo" | "password" | "authCuenta"> {
     token: string;
     refreshToken: string;
+}
+export interface UserRegister extends Roles{
+    tokenId: string;
+    nombre: string;
+    correo: string;
+    password: string;
 }
 
