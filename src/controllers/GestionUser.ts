@@ -94,7 +94,6 @@ abstract class LoginRegister {
     if (
       expresiones.correo.test(data.correo) &&
       expresiones.password.test(data.password)
-
     ) {
       conn.query(
         "SELECT password,idAdmin,rol FROM admin WHERE correo = ?",
@@ -126,7 +125,7 @@ abstract class LoginRegister {
                 message: "USER_AUTH_ERROR_DATA",
                 token: null,
                 auht: false,
-              })
+              });
             }
           }
         }
@@ -137,38 +136,64 @@ abstract class LoginRegister {
       });
     }
   }
- public async userRegister  (
+  public async userRegister(
+    req: Request,
+    res: Response,
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const data: UserRegister = {
+        tokenId: req.body.tokenId,
+        nombre: req.body.nombre,
+        correo: req.body?.correo,
+        password: req.body.password,
+        nameRol: req.body.nameRole,
+      };
+      const expresiones = {
+        password: /^.{4,20}$/,
+        correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
+      };
 
-    req: Request, res: Response, next:Partial<NextFunction>
+      if (
+        expresiones.correo.test(data.correo) &&
+        expresiones.password.test(data.password)
+      ) {
+        const roundNumber = 10;
+        const encriptarPassword = await bcrypt.genSalt(roundNumber);
+        const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
+        const conn = await conexion.connect();
+        await conn.query(
+          `INSERT INTO usuario (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
+          [data.nombre, data.correo, hasPassword, data.nameRol],
+          (error: Array<Error> | any, rows: any) => {
+            console.log(error);
+            console.log(rows);
+            if (error)
+              return res.json({ message: "ERROR_DATA_USER", error: error });
 
- ): Promise<Response | Request | any> {
+            if (rows) {
+              const tokenId: any = jwt.sign(
+                { id: data.correo },
+                SECRET || "tokenGenerate",
+                { expiresIn: 60 * 60 * 24 }
+              );
 
-  try {
-    const data:UserRegister={
-      tokenId: req.body.tokenId,
-      nombre: req.body.nombre,
-      correo: req.body?.correo,
-      password: req.body.password,
-      nameRol: req.body.nameRole
-    };
-    const expresiones = {
-      password: /^.{4,20}$/,
-      correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-    };
-
-    if (
-      expresiones.correo.test(data.correo) &&
-      expresiones.password.test(data.password)
-    ) {
-      const roundNumber = 10;
-      const encriptarPassword = await bcrypt.genSalt(roundNumber);
-      const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
+              return res.json({
+                message: "USER_CREATE_SUCCESFULLY",
+                tokenId,
+              });
+            }
+          }
+        );
+      } else {
+        return res.json({
+          message: "DATA_NOT_VALID",
+        });
+      }
+    } catch (error) {
+      res.status(400).send({ message: error });
     }
-  } catch (error) {
-    res.status(400).send({ message: error})
   }
-  
- }
 }
 
 export default LoginRegister;
