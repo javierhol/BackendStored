@@ -8,6 +8,7 @@ import {HOST,DBNAME,PASSWORD,USER,PORTDB,LIMIT_CONNECION} from "../config/config
     protected readonly database:(string | any)  = DBNAME;
     private readonly charset:(string | any)  = "utf8";
     private readonly port: (Number | any) = PORTDB;
+    private readonly max:(Number|any)=LIMIT_CONNECION;
 
      public async connect() {
    const conenct = await createPool({
@@ -18,9 +19,11 @@ import {HOST,DBNAME,PASSWORD,USER,PORTDB,LIMIT_CONNECION} from "../config/config
             database: this.database,
             charset: this.charset,
             port: this.port,
+           
             
         })
         return conenct;
+        
 }
 }
 

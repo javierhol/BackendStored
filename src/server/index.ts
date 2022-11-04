@@ -32,12 +32,13 @@ const startServer = () => {
             preserveExtension: true,
             tempFileDir: path.join( __dirname, "tmp" )
         } ) )
-        AppServer.use(new RouterUser().register());  
+        AppServer.use(new RouterUser().registerAdmin()); 
+        AppServer.use(new RouterUser().registerUser()); 
         AppServer.use(new RouterUser().Login());  
     } catch ( error:any ) {
         
         throw new Error( error );
     }
-    
+
 }
 startServer()

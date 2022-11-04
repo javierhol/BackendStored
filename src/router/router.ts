@@ -12,14 +12,15 @@ class  RouterUser extends LoginRegister
         return router;
     }
     
-     public register (){
+     public registerAdmin(){
         router.post( "/register", this.RegisterUser);
-        return router;
-        
+        return router;       
      }
-
-     
-        
+     public registerUser(){
+        router.post( "/registerUser", this.userRegister);
+        return router;       
+     }
+ 
     }
     
 
