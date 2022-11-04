@@ -20,6 +20,7 @@ abstract class LoginRegister {
         refreshToken: req.body.refreshToken,
         nameRol: "admin",
       };
+      
       const expresiones = {
         password: /^.{4,20}$/,
         correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
@@ -34,22 +35,26 @@ abstract class LoginRegister {
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
         let state = (data.authCuenta = true);
         const conn = await conexion.connect();
+        conn.query('SELECT * FROM admin',async(error, rows) => {
+           for (let i = 0; i < rows.length; i++) {
+               if (rows[i].correo == data.correo) return res.json({ message: "ERR_EXIST_EMAIL", state:302});      
+           }
+
         await conn.query(
           `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
           [data.correo, hasPassword, data.nameRol, state],
           (error: Array<Error> | any, rows: any) => {
             console.log(error);
             console.log(rows);
-            if (error)
+            if (error){
               return res.json({ message: "ERROR_DATA_ADMIN", error: error });
-
+            }
             if (rows) {
               const token: any = jwt.sign(
                 { id: data.correo },
                 SECRET || "tokenGenerate",
                 { expiresIn: 60 * 60 * 24 }
               );
-
               return res.json({
                 message: "USER_CREATE_SUCCESFULL",
                 token,
@@ -58,6 +63,8 @@ abstract class LoginRegister {
             }
           }
         );
+        })
+       
       } else {
         return res.json({
           message: "DATA_NOT_VALID",
@@ -108,6 +115,8 @@ abstract class LoginRegister {
               req.body.password,
               password
             );
+            console.log(passVerify);
+            
             if (passVerify) {
               const token: any = jwt.sign(
                 { id: rows[0].idAdmin },
@@ -142,12 +151,27 @@ abstract class LoginRegister {
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
     try {
+     let tokenIdAcc:any =  req.headers["acc-token-data"]
+
+     const verifyToken:Array<any>|any= jwt.verify( tokenIdAcc, SECRET)! ;
+     console.log(verifyToken);
+     
+     if (verifyToken?.id) {
+       console.log("coorecto");
+       
+       
+     }else{
+
+       return res.json({messaje:"error token"})
+       
+     }
+     
       const data: UserRegister = {
-        tokenId: req.body.tokenId,
+        tokenId: "",
         nombre: req.body.nombre,
         correo: req.body?.correo,
         password: req.body.password,
-        nameRol: req.body.nameRole,
+        nameRol: req.body.nameRol,
       };
       const expresiones = {
         password: /^.{4,20}$/,
@@ -162,15 +186,20 @@ abstract class LoginRegister {
         const encriptarPassword = await bcrypt.genSalt(roundNumber);
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
         const conn = await conexion.connect();
-        await conn.query(
-          `INSERT INTO usuario (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
-          [data.nombre, data.correo, hasPassword, data.nameRol],
+        conn.query('SELECT * FROM usuario',async (error, rows) => {
+          
+          console.log(rows);
+         
+          for(let i = 0; i < rows.length;i++){
+            if (rows[i].correo == data.correo) return res.json({ message: "ERR_MAIL_EXIST_USER", status:302})  
+          }
+          await conn.query(
+          `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
+          [data.nombre, data.correo, hasPassword, data.nameRol,verifyToken?.id],
           (error: Array<Error> | any, rows: any) => {
             console.log(error);
             console.log(rows);
-            if (error)
-              return res.json({ message: "ERROR_DATA_USER", error: error });
-
+            if (error)return res.json({ message: "ERROR_DATA_USER", error: error });
             if (rows) {
               const tokenId: any = jwt.sign(
                 { id: data.correo },
@@ -185,23 +214,24 @@ abstract class LoginRegister {
             }
           }
         );
+        })
+     
       } else {
         return res.json({
-          message: "DATA_NOT_VALID",
+          message: "DATA_NOT_VALID",error:Error,
         });
       }
     } catch (error) {
-      res.status(400).send({ message: error });
+      res.status(400).send({ tokenError: error ,message:"necesita un token" });
     }
   }
 
+  // public async loginUser(req: Request, res: Response,
+  //   next:Partial<NextFunction>,
+  // ):Promise<>{
+    
+  // }
 
-  public async  usuarioRegister(req: Partial<Request>,res:Partial<Response>): Promise<void>  {
-
-  const conn = await conexion.connect();
-
-
-  }
 }
 
 export default LoginRegister;
