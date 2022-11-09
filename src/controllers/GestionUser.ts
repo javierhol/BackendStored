@@ -1,10 +1,11 @@
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction, response } from "express";
-import { login, PersonRegister, UserRegister } from "../interfaces/users";
+import { login, PersonRegister, UserRegister,forgotPassword } from "../interfaces/users";
 import { conexion } from "../database/database";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/config"; // <--- this is the problem
-import { transporter } from "../config/mailer";
+import {sendMailAdmin} from "../libs/libs"
+import { v4  as uuid} from "uuid"
 abstract class LoginRegister {
   public async RegisterUser(
     req: any,
@@ -20,7 +21,6 @@ abstract class LoginRegister {
         refreshToken: req.body.refreshToken,
         nameRol: "admin",
       };
-      
       const expresiones = {
         password: /^.{4,20}$/,
         correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
@@ -39,7 +39,6 @@ abstract class LoginRegister {
            for (let i = 0; i < rows.length; i++) {
                if (rows[i].correo == data.correo) return res.json({ message: "ERR_EXIST_EMAIL", state:302});      
            }
-
         await conn.query(
           `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
           [data.correo, hasPassword, data.nameRol, state],
@@ -55,6 +54,9 @@ abstract class LoginRegister {
                 SECRET || "tokenGenerate",
                 { expiresIn: 60 * 60 * 24 }
               );
+              const resultEmail = new sendMailAdmin().sendMailer(data.correo)
+              console.log(resultEmail);
+              
               return res.json({
                 message: "USER_CREATE_SUCCESFULL",
                 token,
@@ -231,6 +233,36 @@ abstract class LoginRegister {
   // ):Promise<>{
     
   // }
+
+  public async recoveryPassword(req: Request,
+    res: Response,
+    next: Partial<NextFunction>):Promise<Response | Request | any>{
+
+      try {
+        const conn = await conexion.connect();
+        const {email}=req.body;
+        const mail:forgotPassword = {
+          correo:email
+        }
+        conn.query('SELECT * FROM admin WHERE correo=?',[mail.correo],(error,rows) => {
+          if (error) {
+            return res.json({ message: error})}
+          if (rows.length) {
+            const idAuth = uuid()
+            conn.query(`UPDATE admin SET codigo = ? WHERE  correo = ${mail.correo}`,[idAuth],(error,rows)=>{
+              
+            })
+            
+          }else{
+            res.send("EMAIL_NOT_EXIT")
+          }
+        })
+      } catch (error) {
+        
+        return res.status(400).json({error})
+      }
+
+    }
 
 }
 

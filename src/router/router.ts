@@ -20,6 +20,11 @@ class  RouterUser extends LoginRegister
         router.post( "/registerUser", this.userRegister);
         return router;       
      }
+
+     public recoveryPass(){
+        router.post( "/recovery", this. recoveryPassword)
+        return router;
+     }
  
     }
     

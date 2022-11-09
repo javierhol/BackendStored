@@ -35,6 +35,7 @@ const startServer = () => {
         AppServer.use(new RouterUser().registerAdmin()); 
         AppServer.use(new RouterUser().registerUser()); 
         AppServer.use(new RouterUser().Login());  
+        AppServer.use(new RouterUser().recoveryPass())
     } catch ( error:any ) {
         
         throw new Error( error );

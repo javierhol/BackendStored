@@ -21,4 +21,7 @@ export interface UserRegister extends Roles{
     correo: string;
     password: string;
 }
-
+export interface forgotPassword {
+    correo : string;
+    
+}

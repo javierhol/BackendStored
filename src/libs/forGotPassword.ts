@@ -1,10 +1,9 @@
 import nodemailer from "nodemailer";
-import {MAIL_PASSWORD, MAIL_USER} from "../config/config"
-import dotenv from "dotenv";
-import { PersonRegister } from "../interfaces/users";
+import jwt from "jsonwebtoken";;
 
-export class sendMailAdmin {
-  public async sendMailer(email: string): Promise<any> {
+ class recoveryAdminPass{
+	 public async sendCode(code:any, email:string): Promise<any>{
+
  const transporter = nodemailer.createTransport({
                 host: "smtp.gmail.com",
                 port: 587,
@@ -20,7 +19,7 @@ export class sendMailAdmin {
                   from: "stored754@gmail.com",
                   to: email,
                   subject: "Test Email Subject",
-                  html: "esto es stored",
+                  html: `<div style="font-size:28px">Su codigo de verificacion: ${code}</div>`,
                 })
                 .then((res) => {
                  let dataEmail:any = res; 
@@ -28,8 +27,6 @@ export class sendMailAdmin {
                 .catch((err) => {
                   let dataEmailError:any = err; 
                 });
-  
-  }
+
+	 }
 }
-
-
