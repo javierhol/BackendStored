@@ -1,11 +1,17 @@
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction, response } from "express";
-import { login, PersonRegister, UserRegister,forgotPassword } from "../interfaces/users";
+import {  login,
+  PersonRegister,
+  UserRegister,
+  forgotPassword,
+  newPasswordAdmin
+} from "../interfaces/users";
 import { conexion } from "../database/database";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/config"; // <--- this is the problem
-import {sendMailAdmin} from "../libs/libs"
-import { v4  as uuid} from "uuid"
+import { sendMailAdmin } from "../libs/libs";
+import { v4 as uuid } from "uuid";
+import { recoveryAdminPass } from "../libs/forGotPassword";
 abstract class LoginRegister {
   public async RegisterUser(
     req: any,
@@ -35,38 +41,38 @@ abstract class LoginRegister {
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
         let state = (data.authCuenta = true);
         const conn = await conexion.connect();
-        conn.query('SELECT * FROM admin',async(error, rows) => {
-           for (let i = 0; i < rows.length; i++) {
-               if (rows[i].correo == data.correo) return res.json({ message: "ERR_EXIST_EMAIL", state:302});      
-           }
-        await conn.query(
-          `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
-          [data.correo, hasPassword, data.nameRol, state],
-          (error: Array<Error> | any, rows: any) => {
-            console.log(error);
-            console.log(rows);
-            if (error){
-              return res.json({ message: "ERROR_DATA_ADMIN", error: error });
-            }
-            if (rows) {
-              const token: any = jwt.sign(
-                { id: data.correo },
-                SECRET || "tokenGenerate",
-                { expiresIn: 60 * 60 * 24 }
-              );
-              const resultEmail = new sendMailAdmin().sendMailer(data.correo)
-              console.log(resultEmail);
-              
-              return res.json({
-                message: "USER_CREATE_SUCCESFULL",
-                token,
-                auht: data.authCuenta,
-              });
-            }
+        conn.query("SELECT * FROM admin", async (error, rows) => {
+          for (let i = 0; i < rows.length; i++) {
+            if (rows[i].correo == data.correo)
+              return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
           }
-        );
-        })
-       
+          await conn.query(
+            `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
+            [data.correo, hasPassword, data.nameRol, state],
+            (error: Array<Error> | any, rows: any) => {
+              console.log(error);
+              console.log(rows);
+              if (error) {
+                return res.json({ message: "ERROR_DATA_ADMIN", error: error });
+              }
+              if (rows) {
+                const token: any = jwt.sign(
+                  { id: data.correo },
+                  SECRET || "tokenGenerate",
+                  { expiresIn: 60 * 60 * 24 }
+                );
+                const resultEmail = new sendMailAdmin().sendMailer(data.correo);
+                console.log(resultEmail);
+
+                return res.json({
+                  message: "USER_CREATE_SUCCESFULL",
+                  token,
+                  auht: data.authCuenta,
+                });
+              }
+            }
+          );
+        });
       } else {
         return res.json({
           message: "DATA_NOT_VALID",
@@ -118,7 +124,7 @@ abstract class LoginRegister {
               password
             );
             console.log(passVerify);
-            
+
             if (passVerify) {
               const token: any = jwt.sign(
                 { id: rows[0].idAdmin },
@@ -153,21 +159,17 @@ abstract class LoginRegister {
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
     try {
-     let tokenIdAcc:any =  req.headers["acc-token-data"]
+      let tokenIdAcc: any = req.headers["acc-token-data"];
 
-     const verifyToken:Array<any>|any= jwt.verify( tokenIdAcc, SECRET)! ;
-     console.log(verifyToken);
-     
-     if (verifyToken?.id) {
-       console.log("coorecto");
-       
-       
-     }else{
+      const verifyToken: Array<any> | any = jwt.verify(tokenIdAcc, SECRET)!;
+      console.log(verifyToken);
 
-       return res.json({messaje:"error token"})
-       
-     }
-     
+      if (verifyToken?.id) {
+        console.log("coorecto");
+      } else {
+        return res.json({ messaje: "error token" });
+      }
+
       const data: UserRegister = {
         tokenId: "",
         nombre: req.body.nombre,
@@ -188,82 +190,135 @@ abstract class LoginRegister {
         const encriptarPassword = await bcrypt.genSalt(roundNumber);
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
         const conn = await conexion.connect();
-        conn.query('SELECT * FROM usuario',async (error, rows) => {
-          
+        conn.query("SELECT * FROM usuario", async (error, rows) => {
           console.log(rows);
-         
-          for(let i = 0; i < rows.length;i++){
-            if (rows[i].correo == data.correo) return res.json({ message: "ERR_MAIL_EXIST_USER", status:302})  
+
+          for (let i = 0; i < rows.length; i++) {
+            if (rows[i].correo == data.correo)
+              return res.json({ message: "ERR_MAIL_EXIST_USER", status: 302 });
           }
           await conn.query(
-          `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
-          [data.nombre, data.correo, hasPassword, data.nameRol,verifyToken?.id],
-          (error: Array<Error> | any, rows: any) => {
-            console.log(error);
-            console.log(rows);
-            if (error)return res.json({ message: "ERROR_DATA_USER", error: error });
-            if (rows) {
-              const tokenId: any = jwt.sign(
-                { id: data.correo },
-                SECRET || "tokenGenerate",
-                { expiresIn: 60 * 60 * 24 }
-              );
+            `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
+            [
+              data.nombre,
+              data.correo,
+              hasPassword,
+              data.nameRol,
+              verifyToken?.id,
+            ],
+            (error: Array<Error> | any, rows: any) => {
+              console.log(error);
+              console.log(rows);
+              if (error)
+                return res.json({ message: "ERROR_DATA_USER", error: error });
+              if (rows) {
+                const tokenId: any = jwt.sign(
+                  { id: data.correo },
+                  SECRET || "tokenGenerate",
+                  { expiresIn: 60 * 60 * 24 }
+                );
 
-              return res.json({
-                message: "USER_CREATE_SUCCESFULLY",
-                tokenId,
-              });
+                return res.json({
+                  message: "USER_CREATE_SUCCESFULLY",
+                  tokenId,
+                });
+              }
             }
-          }
-        );
-        })
-     
+          );
+        });
       } else {
         return res.json({
-          message: "DATA_NOT_VALID",error:Error,
+          message: "DATA_NOT_VALID",
+          error: Error,
         });
       }
     } catch (error) {
-      res.status(400).send({ tokenError: error ,message:"necesita un token" });
+      res.status(400).send({ tokenError: error, message: "necesita un token" });
     }
   }
 
   // public async loginUser(req: Request, res: Response,
   //   next:Partial<NextFunction>,
   // ):Promise<>{
-    
+
   // }
 
-  public async recoveryPassword(req: Request,
+  public async recoveryPassword(
+    req: Request,
     res: Response,
-    next: Partial<NextFunction>):Promise<Response | Request | any>{
-
-      try {
-        const conn = await conexion.connect();
-        const {email}=req.body;
-        const mail:forgotPassword = {
-          correo:email
-        }
-        conn.query('SELECT * FROM admin WHERE correo=?',[mail.correo],(error,rows) => {
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const conn = await conexion.connect();
+      const { email } = req.body;
+      const mail: forgotPassword = {
+        correo: email,
+      };
+      conn.query(
+        "SELECT * FROM admin WHERE correo=?",
+        [mail.correo],
+        (error, rows) => {
           if (error) {
-            return res.json({ message: error})}
-          if (rows.length) {
-            const idAuth = uuid()
-            conn.query(`UPDATE admin SET codigo = ? WHERE  correo = ${mail.correo}`,[idAuth],(error,rows)=>{
-              
-            })
-            
-          }else{
-            res.send("EMAIL_NOT_EXIT")
+            return res.json({ message: error });
           }
-        })
+          if (rows.length) {
+            const idAuth = uuid();
+            conn.query(
+              `UPDATE admin SET codigo = ? WHERE  correo = ?`,
+              [idAuth, mail.correo],
+              (error, rows) => {
+                if (error)
+                  return res.json({ message: "ERROR_CODE_WZ", err: error });
+
+                conn.query(
+                  "SELECT codigo FROM admin WHERE correo = ?",
+                  [mail.correo],
+                  (error, rows) => {
+                    if (error)
+                      return res.json({
+                        message: "ERROR_CODE_OBTENER_CODE_SQL",
+                      });
+
+                    if (rows.length) {
+                      const resultCode = new recoveryAdminPass().sendCode(
+                        rows[0].codigo,
+                        mail.correo
+                      );
+                      return res.json({ message: "VERIFY" });
+                    } else {
+                      if (error)
+                        return res.json({
+                          message: "ERROR_CODE_OBTENER_CODE_SQL",
+                        });
+                    }
+                  }
+                );
+              }
+            );
+          } else {
+            res.send("EMAIL_NOT_EXIT");
+          }
+        }
+      );
+    } catch (error) {
+      return res.status(400).json({ error });
+    }
+  }
+  public async newPassAdmin( req: Request,
+    res: Response,
+    next: Partial<NextFunction>): Promise<Response | Request | any> {
+      try {
+        const {codigo,correo,newPassword}= req.body;
+        const validate : newPasswordAdmin ={
+          correo:correo,
+          codePass:codigo,
+          newPassword:newPassword
+        }
       } catch (error) {
-        
-        return res.status(400).json({error})
+        return res.status(400).json({ error });
       }
 
-    }
-
+  }
 }
 
 export default LoginRegister;

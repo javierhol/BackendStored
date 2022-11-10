@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";;
 
- class recoveryAdminPass{
+ export class recoveryAdminPass{
 	 public async sendCode(code:any, email:string): Promise<any>{
 
  const transporter = nodemailer.createTransport({
