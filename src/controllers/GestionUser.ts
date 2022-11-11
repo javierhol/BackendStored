@@ -308,16 +308,44 @@ abstract class LoginRegister {
     res: Response,
     next: Partial<NextFunction>): Promise<Response | Request | any> {
       try {
+        const conn = await conexion.connect();
         const {codigo,correo,newPassword}= req.body;
         const validate : newPasswordAdmin ={
           correo:correo,
           codePass:codigo,
           newPassword:newPassword
+          
         }
+        // actualizar contraseña
+        conn.query("SELECT * FROM admin WHERE correo = ?",[validate.correo],(error,rows)=>{
+          
+          if(error) return res.json({message:"ERROR_CODE_OBTENER_CODE_SQL",error})
+          if(rows.length){
+            if(rows[0].codigo == validate.codePass){
+              const roundNumber = 10;
+              const encriptarPassword = bcrypt.genSaltSync(roundNumber);
+              const hasPassword = bcrypt.hashSync(validate.newPassword, encriptarPassword);
+              conn.query("UPDATE admin SET password = ? WHERE correo = ?",[hasPassword,validate.correo],(error,rows)=>{
+                if(error) return res.json({message:"ERROR_CODE_OBTENER_CODE_SQL",error})
+                if(rows){
+                  return res.json({message:"PASSWORD_CHANGE"})
+                }
+              })
+            }else{
+              return res.json({message:"CODE_NOT_VALID"})
+            }
+          }else{
+            return res.json({message:"EMAIL_NOT_VALID"})
+          }
+
+
+        })
+        
       } catch (error) {
         return res.status(400).json({ error });
       }
-
+    
+    
   }
 }
 
