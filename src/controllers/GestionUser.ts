@@ -328,6 +328,8 @@ abstract class LoginRegister {
               conn.query("UPDATE admin SET password = ? WHERE correo = ?",[hasPassword,validate.correo],(error,rows)=>{
                 if(error) return res.json({message:"ERROR_CODE_OBTENER_CODE_SQL",error})
                 if(rows){
+                  let codeRecovery = "";
+                  conn.query("UPDATE admin SET codigo = ? WHERE correo =?",[codeRecovery,validate.correo])
                   return res.json({message:"PASSWORD_CHANGE"})
                 }
               })

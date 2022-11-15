@@ -26,7 +26,7 @@ class  RouterUser extends LoginRegister
         return router;
      }
      public newPassword(){
-        router.post( "/newPass",this.newPassAdmin)
+       return router.post("/newPass",this.newPassAdmin)
      }
  
     }
