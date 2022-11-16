@@ -89,6 +89,7 @@ abstract class LoginRegister {
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
     const data: login = {
+      
       correo: req.body.correo,
       password: req.body.password,
       authCuenta: true,
@@ -123,8 +124,6 @@ abstract class LoginRegister {
               req.body.password,
               password
             );
-            console.log(passVerify);
-
             if (passVerify) {
               const token: any = jwt.sign(
                 { id: rows[0].idAdmin },
@@ -262,7 +261,10 @@ abstract class LoginRegister {
             return res.json({ message: error });
           }
           if (rows.length) {
-            const idAuth = uuid();
+            const min = 1000;
+            const max = 9999;
+            let idAuth = Math.floor(Math.random()*(max-min+1)+min);
+            
             conn.query(
               `UPDATE admin SET codigo = ? WHERE  correo = ?`,
               [idAuth, mail.correo],

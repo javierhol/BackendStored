@@ -19,7 +19,13 @@ import jwt from "jsonwebtoken";;
                   from: "stored754@gmail.com",
                   to: email,
                   subject: "Test Email Subject",
-                  html: `<div style="font-size:28px">Su codigo de verificacion: ${code}</div>`,
+                  html: `
+                  <div style="font-size:28px; display:flex; flex-direction:column; width:300px; margin: 10px auto;
+                  justify-content:center">
+                  <h1>Continue con la recuperacion de su contraseña</h1>
+                  <p>Su codigo El siguiente codigo</p>
+                   <p>${code}</>
+                  </div>`,
                 })
                 .then((res) => {
                  let dataEmail:any = res; 
