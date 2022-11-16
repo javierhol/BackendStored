@@ -1,17 +1,18 @@
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction, response } from "express";
-import {  login,
+import {
+  login,
   PersonRegister,
   UserRegister,
   forgotPassword,
-  newPasswordAdmin
+  newPasswordAdmin,
 } from "../interfaces/users";
 import { conexion } from "../database/database";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../config/config"; // <--- this is the problem
 import { sendMailAdmin } from "../libs/libs";
-import { v4 as uuid } from "uuid";
 import { recoveryAdminPass } from "../libs/forGotPassword";
+import { authUser } from "../auth/authUser";
 abstract class LoginRegister {
   public async RegisterUser(
     req: any,
@@ -88,7 +89,6 @@ abstract class LoginRegister {
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
     const data: login = {
-      
       correo: req.body.correo,
       password: req.body.password,
       authCuenta: true,
@@ -130,14 +130,14 @@ abstract class LoginRegister {
                 { expiresIn: 60 * 60 * 24 }
               );
               return res.json({
-                message: "USER_AUTH_SUCCESFULL",
+                message: "ADMIN_AUTH_SUCCESFULL",
                 token: token,
                 auht: data.authCuenta,
                 rol: rows[0].rol,
               });
             } else {
               return res.json({
-                message: "USER_AUTH_ERROR_DATA",
+                message: "ADMIN_AUTH_ERROR_DATA",
                 token: null,
                 auht: false,
               });
@@ -262,8 +262,8 @@ abstract class LoginRegister {
           if (rows.length) {
             const min = 1000;
             const max = 9999;
-            let idAuth = Math.floor(Math.random()*(max-min+1)+min);
-            
+            let idAuth = Math.floor(Math.random() * (max - min + 1) + min);
+
             conn.query(
               `UPDATE admin SET codigo = ? WHERE  correo = ?`,
               [idAuth, mail.correo],
@@ -305,50 +305,129 @@ abstract class LoginRegister {
       return res.status(400).json({ error });
     }
   }
-  public async newPassAdmin( req: Request,
+  public async newPassAdmin(
+    req: Request,
     res: Response,
-    next: Partial<NextFunction>): Promise<Response | Request | any> {
-      try {
-        const conn = await conexion.connect();
-        const {codigo,correo,newPassword}= req.body;
-        const validate : newPasswordAdmin ={
-          correo:correo,
-          codePass:codigo,
-          newPassword:newPassword
-          
-        }
-        // actualizar contraseña
-        conn.query("SELECT * FROM admin WHERE correo = ?",[validate.correo],(error,rows)=>{
-          
-          if(error) return res.json({message:"ERROR_CODE_OBTENER_CODE_SQL",error})
-          if(rows.length){
-            if(rows[0].codigo == validate.codePass){
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const conn = await conexion.connect();
+      const { codigo, correo, newPassword } = req.body;
+      const validate: newPasswordAdmin = {
+        correo: correo,
+        codePass: codigo,
+        newPassword: newPassword,
+      };
+      // actualizar contraseña
+      conn.query(
+        "SELECT * FROM admin WHERE correo = ?",
+        [validate.correo],
+        (error, rows) => {
+          if (error)
+            return res.json({ message: "ERROR_CODE_OBTENER_CODE_SQL", error });
+          if (rows.length) {
+            if (rows[0].codigo == validate.codePass) {
               const roundNumber = 10;
               const encriptarPassword = bcrypt.genSaltSync(roundNumber);
-              const hasPassword = bcrypt.hashSync(validate.newPassword, encriptarPassword);
-              conn.query("UPDATE admin SET password = ? WHERE correo = ?",[hasPassword,validate.correo],(error,rows)=>{
-                if(error) return res.json({message:"ERROR_CODE_OBTENER_CODE_SQL",error})
-                if(rows){
-                  let codeRecovery = "";
-                  conn.query("UPDATE admin SET codigo = ? WHERE correo =?",[codeRecovery,validate.correo])
-                  return res.json({message:"PASSWORD_CHANGE"})
+              const hasPassword = bcrypt.hashSync(
+                validate.newPassword,
+                encriptarPassword
+              );
+              conn.query(
+                "UPDATE admin SET password = ? WHERE correo = ?",
+                [hasPassword, validate.correo],
+                (error, rows) => {
+                  if (error)
+                    return res.json({
+                      message: "ERROR_CODE_OBTENER_CODE_SQL",
+                      error,
+                    });
+                  if (rows) {
+                    let codeRecovery = "";
+                    conn.query("UPDATE admin SET codigo = ? WHERE correo =?", [
+                      codeRecovery,
+                      validate.correo,
+                    ]);
+                    return res.json({ message: "PASSWORD_CHANGE" });
+                  }
                 }
-              })
-            }else{
-              return res.json({message:"CODE_NOT_VALID"})
+              );
+            } else {
+              return res.json({ message: "CODE_NOT_VALID" });
             }
-          }else{
-            return res.json({message:"EMAIL_NOT_VALID"})
+          } else {
+            return res.json({ message: "EMAIL_NOT_VALID" });
           }
+        }
+      );
+    } catch (error) {
+      return res.status(400).json({ error });
+    }
+  }
+  //login user
 
+  public async loginUser(
+    req: Partial<any>,
+    res: Response,
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const data: login = {
+        correo: req.body.correo,
+        password: req.body.password,
+        authCuenta: true,
+        token: req.body.token,
+        refreshToken: req.body.refreshToken,
+      };
 
-        })
-        
-      } catch (error) {
-        return res.status(400).json({ error });
-      }
-    
-    
+      const conn = await conexion.connect();
+      const expresiones = {
+        password: /^.{4,20}$/,
+        correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
+      };
+      if (
+        expresiones.correo.test(data.correo) &&
+        expresiones.password.test(data.password)
+      )
+        conn.query(
+          "SELECT password,idUser FROM usuario WHERE correo = ?",
+          [data.correo],
+          async (error: Array<Error> | any, rows: any) => {
+            if (error)
+              return res.json({ message: "ERROR_AUUTH_USER", error: error });
+
+            if (rows) {
+              const password = rows[0].password;
+              const compararPassword: Boolean = await bcrypt.compareSync(
+                data.password,
+                password
+              );
+              if (compararPassword) {
+                const token: any = jwt.sign(
+                  {
+                    id: rows[0].idUser,
+                  },
+                  SECRET || "tokenGenerate",
+                  { expiresIn: 60 * 60 * 24 }
+                );
+                return res.json({
+                  message: "USER_AUTH_SUCCESFULL",
+                  token: token,
+                  auth: authUser
+                });
+              } else {
+                return res.json({
+                  message: "USER_AUTH_ERROR_DATA",
+                  token: null,
+                  auth: false,
+                });
+              }
+            }
+          }
+        );
+    } catch (error) {
+      return error;
+    }
   }
 }
 
