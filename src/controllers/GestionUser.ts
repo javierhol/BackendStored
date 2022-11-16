@@ -47,8 +47,7 @@ abstract class LoginRegister {
               return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
           }
           await conn.query(
-            `INSERT INTO admin (correo,password,rol,authCuenta) VALUES (?,?,?,?)`,
-            [data.correo, hasPassword, data.nameRol, state],
+            `call insert_usuario(${data.correo},${data.password}, ${data.nameRol}, ${state})`,
             (error: Array<Error> | any, rows: any) => {
               console.log(error);
               console.log(rows);
@@ -164,7 +163,7 @@ abstract class LoginRegister {
       console.log(verifyToken);
 
       if (verifyToken?.id) {
-        console.log("coorecto");
+        
       } else {
         return res.json({ messaje: "error token" });
       }
