@@ -40,7 +40,8 @@ abstract class LoginRegister {
         const roundNumber = 10;
         const encriptarPassword = await bcrypt.genSalt(roundNumber);
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
-        let state = (data.authCuenta = true);
+        let state = ( data.authCuenta = true );
+        let estado ="Activo"
         const conn = await conexion.connect();
         conn.query("SELECT * FROM admin", async (error, rows) => {
           for (let i = 0; i < rows.length; i++) {
@@ -48,7 +49,8 @@ abstract class LoginRegister {
               return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
           }
           await conn.query(
-            `call insert_usuario(${data.correo},${data.password}, ${data.nameRol}, ${state})`,
+            `INSERT INTO admin (correo,password,authCuenta,estado) VALUES (?,?,?,?)`,
+            [hasPassword, data.password, state,estado ],
             (error: Array<Error> | any, rows: any) => {
               console.log(error);
               console.log(rows);
