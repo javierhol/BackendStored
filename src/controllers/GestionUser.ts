@@ -43,13 +43,17 @@ abstract class LoginRegister {
         let authCuenta= ( data.authCuenta = true );
         let estado ="Activo"
         const conn = await conexion.connect();
-        conn.query("SELECT * FROM admin", async (error, rows) => {
+        conn.query(`CALL get_admin()`, async (error, rows) => {
+          
           for (let i = 0; i < rows.length; i++) {
-            if (rows[i].correo == data.correo)
+          for (let j = 0; j < rows[i].length; j++){
+            if (rows[i][j].correo == data.correo)
               return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
           }
+
+          }
           await conn.query(
-            ` call insert_admin('${data.correo}', '${hasPassword}',
+            `call insert_admin('${data.correo}', '${hasPassword}',
             '${data.nameRol}','${authCuenta}')`,
             (error: Array<Error> | any, rows: any) => {
               if (error) {
