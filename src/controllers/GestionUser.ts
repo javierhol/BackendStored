@@ -40,7 +40,7 @@ abstract class LoginRegister {
         const roundNumber = 10;
         const encriptarPassword = await bcrypt.genSalt(roundNumber);
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
-        let state = ( data.authCuenta = true );
+        let authCuenta= ( data.authCuenta = true );
         let estado ="Activo"
         const conn = await conexion.connect();
         conn.query("SELECT * FROM admin", async (error, rows) => {
@@ -49,11 +49,9 @@ abstract class LoginRegister {
               return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
           }
           await conn.query(
-            `INSERT INTO admin (correo,password,authCuenta,estado) VALUES (?,?,?,?)`,
-            [hasPassword, data.password, state,estado ],
+            ` call insert_admin('${data.correo}', '${hasPassword}',
+            '${data.nameRol}','${authCuenta}')`,
             (error: Array<Error> | any, rows: any) => {
-              console.log(error);
-              console.log(rows);
               if (error) {
                 return res.json({ message: "ERROR_DATA_ADMIN", error: error });
               }
@@ -64,8 +62,6 @@ abstract class LoginRegister {
                   { expiresIn: 60 * 60 * 24 }
                 );
                 const resultEmail = new sendMailAdmin().sendMailer(data.correo);
-                console.log(resultEmail);
-
                 return res.json({
                   message: "USER_CREATE_SUCCESFULL",
                   token,
@@ -102,12 +98,6 @@ abstract class LoginRegister {
       password: /^.{4,20}$/,
       correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
     };
-
-    // if (req.headers["authorization-google"]) {
-
-    //   conn.query("")
-    // }
-
     if (
       expresiones.correo.test(data.correo) &&
       expresiones.password.test(data.password)
@@ -120,7 +110,6 @@ abstract class LoginRegister {
             return res.json({ message: "ERROR_AUTH_ADMIN", error: error });
           if (rows) {
             const password = rows[0].password;
-            console.log(rows);
             const passVerify: Boolean = await bcrypt.compare(
               req.body.password,
               password
@@ -131,6 +120,7 @@ abstract class LoginRegister {
                 SECRET || "tokenGenerate",
                 { expiresIn: 60 * 60 * 24 }
               );
+              
               return res.json({
                 message: "ADMIN_AUTH_SUCCESFULL",
                 token: token,
@@ -162,13 +152,10 @@ abstract class LoginRegister {
       let tokenIdAcc: any = req.headers["acc-token-data"];
 
       const verifyToken: Array<any> | any = jwt.verify(tokenIdAcc, SECRET)!;
-      console.log(verifyToken);
 
-      if (verifyToken?.id) {
+      if (!verifyToken?.id) {
         
-      } else {
-        return res.json({ messaje: "error token" });
-      }
+      
 
       const data: UserRegister = {
         tokenId: "",
@@ -191,8 +178,6 @@ abstract class LoginRegister {
         const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
         const conn = await conexion.connect();
         conn.query("SELECT * FROM usuario", async (error, rows) => {
-          console.log(rows);
-
           for (let i = 0; i < rows.length; i++) {
             if (rows[i].correo == data.correo)
               return res.json({ message: "ERR_MAIL_EXIST_USER", status: 302 });
@@ -206,9 +191,7 @@ abstract class LoginRegister {
               data.nameRol,
               verifyToken?.id,
             ],
-            (error: Array<Error> | any, rows: any) => {
-              console.log(error);
-              console.log(rows);
+            (error: Array<Error> | any, rows: any) => {;
               if (error)
                 return res.json({ message: "ERROR_DATA_USER", error: error });
               if (rows) {
@@ -232,8 +215,11 @@ abstract class LoginRegister {
           error: Error,
         });
       }
+      } else {
+        return res.json({ messaje: "ERROR_INICIO_SESSION" });
+      }
     } catch (error) {
-      res.status(400).send({ tokenError: error, message: "necesita un token" });
+      res.status(400).send({ tokenError: error, message: "NOT_VERIFY_TOKEN" });
     }
   }
 

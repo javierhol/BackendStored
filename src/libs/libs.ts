@@ -19,7 +19,7 @@ export class sendMailAdmin {
                 .sendMail({
                   from: "stored754@gmail.com",
                   to: email,
-                  subject: "Bienvenido(a) a Storeo",
+                  subject: "Bienvenido(a) a Stored",
                   html: `
                    <div style=" width:400px; margin: 2px 0px;
                    border-radius:6px; overflow: hidden;
