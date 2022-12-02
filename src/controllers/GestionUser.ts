@@ -13,6 +13,8 @@ import { SECRET } from "../config/config"; // <--- this is the problem
 import { sendMailAdmin } from "../libs/libs";
 import { recoveryAdminPass } from "../libs/forGotPassword";
 import { authUser } from "../auth/authUser";
+import { recoveryUserPass } from "../libs/forgotPassUser";
+// import { newPasswordUser } from "../interfaces/users";
 abstract class LoginRegister {
 
   public async veryfidCode(req: Request,
@@ -87,7 +89,6 @@ abstract class LoginRegister {
                   { expiresIn: 60 * 60 * 24 }
                 );
                 const resultEmail = new sendMailAdmin().sendMailer( data.correo );
-                console.log( resultEmail );
 
                 return res.json( {
                   message: "USER_CREATE_SUCCESFULL",
@@ -138,7 +139,7 @@ abstract class LoginRegister {
             return res.json( { message: "ERROR_AUTH_ADMIN", error: error } );
           if ( rows.length > 0 ) {
             const password = rows[0].password;
-            console.log( rows );
+            
             const passVerify: Boolean = await bcrypt.compare(
               data.password,
               password
@@ -194,19 +195,30 @@ abstract class LoginRegister {
       } else {
         return res.json( { messaje: "error token" } );
       }
+    } catch (error) {
+      res.status(400).send({ tokenError: error, message: "NOT_VERIFY_TOKEN" });
+    }
+  }
 
-      const data: UserRegister = {
-        tokenId: "",
-        nombre: req.body.nombre,
-        correo: req.body?.correo,
+  public async loginUser(
+    req: Partial<any>,
+    res: Response,
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const data: login = {
+        correo: req.body.correo,
         password: req.body.password,
-        nameRol: req.body.nameRol,
+        authCuenta: true,
+        token: req.body.token,
+        refreshToken: req.body.refreshToken,
       };
+
+      const conn = await conexion.connect();
       const expresiones = {
         password: /^.{4,20}$/,
         correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
       };
-
       if (
         expresiones.correo.test( data.correo ) &&
         expresiones.password.test( data.password )
@@ -223,11 +235,11 @@ abstract class LoginRegister {
           await conn.query(
             `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
             [
-              data.nombre,
-              data.correo,
-              hasPassword,
-              data.nameRol,
-              verifyToken?.id,
+              // data.nombre,
+              // data.correo,
+              // hasPassword,
+              // data.nameRol,
+              // verifyToken?.id,
             ],
             ( error: Array<Error> | any, rows: any ) => {
               console.log( error );
@@ -260,11 +272,58 @@ abstract class LoginRegister {
     }
   }
 
-  // public async loginUser(req: Request, res: Response,
-  //   next:Partial<NextFunction>,
-  // ):Promise<>{
-
-  // }
+  public async newPassUser(
+    req: any,
+    res: any,
+    next: Partial<NextFunction>
+  ): Promise<Response | Request | any> {
+    try {
+      const conn = await conexion.connect();
+      const { codigo, correo, newPassword } = req.body;
+       const validate:any  = {
+        correo: correo,
+        codePass: codigo,
+        newPassword: newPassword,
+      };
+      const expresiones = {
+        password: /^.{4,20}$/,
+      };
+      if (expresiones.password.test(validate.newPassword)) {
+        conn.query(
+          "SELECT * FROM usuario WHERE correo = ? AND codigo = ?",
+          [validate.correo, validate.codePass],
+          async (error, rows) => {
+            if (error) {
+              return res.json({ message: "ERROR_NEW_PASS", error: error });
+            }
+            if (rows.length) {
+              const password = await bcrypt.hashSync(validate.newPassword, 10);
+              conn.query(
+                "UPDATE usuario SET password = ? WHERE correo = ?",
+                [password, validate.correo],
+                (error, rows) => {
+                  if (error)
+                    return res.json({
+                      message: "ERROR_UPDATE_PASS",
+                      error: error,
+                    });
+                  if (rows) {
+                    return res.json({ message: "PASS_UPDATE_SUCCESFULLY" });
+                  }
+                }
+              );
+            } else {
+              return res.json({ message: "ERROR_NEW_PASS" });
+            }
+          }
+        );
+      } else {
+        return res.json({ message: "EMAIL_NOT_VALID" });
+      }
+    } catch (error) {
+      return res.status(400).json({ error });
+    }
+  }
 
   public async recoveryPassword(
     req: Request,
@@ -388,71 +447,6 @@ abstract class LoginRegister {
       );
     } catch ( error ) {
       return res.status( 400 ).json( { error } );
-    }
-  }
-  //login user
-
-  public async loginUser(
-    req: Partial<any>,
-    res: Response,
-    next: Partial<NextFunction>
-  ): Promise<Response | Request | any> {
-    try {
-      const data: login = {
-        correo: req.body.correo,
-        password: req.body.password,
-        authCuenta: true,
-        token: req.body.token,
-        refreshToken: req.body.refreshToken,
-      };
-
-      const conn = await conexion.connect();
-      const expresiones = {
-        password: /^.{4,20}$/,
-        correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-      };
-      if (
-        expresiones.correo.test( data.correo ) &&
-        expresiones.password.test( data.password )
-      )
-        conn.query(
-          "SELECT password,idUser FROM usuario WHERE correo = ?",
-          [data.correo],
-          async ( error: Array<Error> | any, rows: any ) => {
-            if ( error )
-              return res.json( { message: "ERROR_AUUTH_USER", error: error } );
-
-            if ( rows ) {
-              const password = rows[0].password;
-              const compararPassword: Boolean = await bcrypt.compareSync(
-                data.password,
-                password
-              );
-              if ( compararPassword ) {
-                const token: any = jwt.sign(
-                  {
-                    id: rows[0].idUser,
-                  },
-                  SECRET || "tokenGenerate",
-                  { expiresIn: 60 * 60 * 24 }
-                );
-                return res.json( {
-                  message: "USER_AUTH_SUCCESFULL",
-                  token: token,
-                  auth: authUser
-                } );
-              } else {
-                return res.json( {
-                  message: "USER_AUTH_ERROR_DATA",
-                  token: null,
-                  auth: false,
-                } );
-              }
-            }
-          }
-        );
-    } catch ( error ) {
-      return error;
     }
   }
 }

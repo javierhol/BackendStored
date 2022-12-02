@@ -31,4 +31,7 @@ export interface newPasswordAdmin extends Pick<forgotPassword,"correo">{
     newPassword: string;
 }
 
-interface hola{}
+export interface newPasswordUser extends Pick<forgotPassword,"correo">{
+    codePass : string;
+    newPassword: string;
+}
