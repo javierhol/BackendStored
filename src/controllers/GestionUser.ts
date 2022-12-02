@@ -14,6 +14,29 @@ import { sendMailAdmin } from "../libs/libs";
 import { recoveryAdminPass } from "../libs/forGotPassword";
 import { authUser } from "../auth/authUser";
 abstract class LoginRegister {
+
+  public async veryfidCode(req: Request,
+    res: Response,
+    next: Partial<NextFunction>):Promise<Response | Request | any> {
+  
+    
+    console.log(req.body);
+    
+    const conn = await conexion.connect();
+    conn.query( "SELECT codigo FROM admin Where correo =?",[req.body.data.email], async ( error, rows ) => {
+      for ( let i = 0; i < rows.length; i++ ) {
+        console.log(rows);
+        
+        if ( rows[i].codigo == parseInt(req.body.data.codigo) ) {
+          return res.status(200).json( { message: "CODE_CORRECT", code:rows[i].codigo} );
+        } else {
+          return res.status(400).json( { message: "CODE_INCORRECT" } );
+        }
+      }
+      
+    })
+
+}
   public async RegisterUser(
     req: any,
     res: Response,
@@ -34,54 +57,54 @@ abstract class LoginRegister {
       };
 
       if (
-        expresiones.correo.test(data.correo) &&
-        expresiones.password.test(data.password)
+        expresiones.correo.test( data.correo ) &&
+        expresiones.password.test( data.password )
       ) {
         const roundNumber = 10;
-        const encriptarPassword = await bcrypt.genSalt(roundNumber);
-        const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
+        const encriptarPassword = await bcrypt.genSalt( roundNumber );
+        const hasPassword = await bcrypt.hash( data.password, encriptarPassword );
         let state = ( data.authCuenta = true );
-        let estado ="Activo"
+        let estado = "Activo"
         const conn = await conexion.connect();
-        conn.query("SELECT * FROM admin", async (error, rows) => {
-          for (let i = 0; i < rows.length; i++) {
-            if (rows[i].correo == data.correo)
-              return res.json({ message: "ERR_EXIST_EMAIL", state: 302 });
+        conn.query( "SELECT * FROM admin", async ( error, rows ) => {
+          for ( let i = 0; i < rows.length; i++ ) {
+            if ( rows[i].correo == data.correo )
+              return res.json( { message: "ERR_EXIST_EMAIL", state: 302 } );
           }
           await conn.query(
             `INSERT INTO admin (correo,password,authCuenta,estado) VALUES (?,?,?,?)`,
-            [hasPassword, data.password, state,estado ],
-            (error: Array<Error> | any, rows: any) => {
-              console.log(error);
-              console.log(rows);
-              if (error) {
-                return res.json({ message: "ERROR_DATA_ADMIN", error: error });
+            [data.correo, hasPassword, state, estado],
+            ( error: Array<Error> | any, rows: any ) => {
+              console.log( error );
+              console.log( rows );
+              if ( error ) {
+                return res.json( { message: "ERROR_DATA_ADMIN", error: error } );
               }
-              if (rows) {
+              if ( rows ) {
                 const token: any = jwt.sign(
                   { id: data.correo },
                   SECRET || "tokenGenerate",
                   { expiresIn: 60 * 60 * 24 }
                 );
-                const resultEmail = new sendMailAdmin().sendMailer(data.correo);
-                console.log(resultEmail);
+                const resultEmail = new sendMailAdmin().sendMailer( data.correo );
+                console.log( resultEmail );
 
-                return res.json({
+                return res.json( {
                   message: "USER_CREATE_SUCCESFULL",
                   token,
                   auht: data.authCuenta,
-                });
+                } );
               }
             }
           );
-        });
+        } );
       } else {
-        return res.json({
+        return res.json( {
           message: "DATA_NOT_VALID",
-        });
+        } );
       }
-    } catch (error: any) {
-      throw new Error(error);
+    } catch ( error: any ) {
+      throw new Error( error );
     }
   }
 
@@ -90,67 +113,69 @@ abstract class LoginRegister {
     res: Response,
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
-    const data: login = {
-      correo: req.body.correo,
-      password: req.body.password,
-      authCuenta: true,
-      token: req.body.token,
-      refreshToken: req.body.refreshToken,
-    };
-    const conn = await conexion.connect();
-    const expresiones = {
-      password: /^.{4,20}$/,
-      correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-    };
 
-    // if (req.headers["authorization-google"]) {
+    try {
 
-    //   conn.query("")
-    // }
+      const data: login = {
+        correo: req.body.postDataUser.email,
+        password: req.body.postDataUser.password,
+        authCuenta: true,
+        token: req.body.token,
+        refreshToken: req.body.refreshToken,
+      };
 
-    if (
-      expresiones.correo.test(data.correo) &&
-      expresiones.password.test(data.password)
-    ) {
+      const conn = await conexion.connect();
+
+      // if (req.headers["authorization-google"]) {
+
+      //   conn.query("")
+      // }
       conn.query(
         "SELECT password,idAdmin,rol FROM admin WHERE correo = ?",
         [data.correo],
-        async (error: Array<Error> | any, rows: any) => {
-          if (error)
-            return res.json({ message: "ERROR_AUTH_ADMIN", error: error });
-          if (rows) {
+        async ( error: Array<Error> | any, rows: any ) => {
+          if ( error )
+            return res.json( { message: "ERROR_AUTH_ADMIN", error: error } );
+          if ( rows.length > 0 ) {
             const password = rows[0].password;
-            console.log(rows);
+            console.log( rows );
             const passVerify: Boolean = await bcrypt.compare(
-              req.body.password,
+              data.password,
               password
             );
-            if (passVerify) {
+            console.log( passVerify );
+
+            if ( passVerify ) {
+
               const token: any = jwt.sign(
                 { id: rows[0].idAdmin },
                 SECRET || "tokenGenerate",
                 { expiresIn: 60 * 60 * 24 }
               );
-              return res.json({
+              return res.status( 200 ).json( {
                 message: "ADMIN_AUTH_SUCCESFULL",
                 token: token,
-                auht: data.authCuenta,
+                auth: data.authCuenta,
                 rol: rows[0].rol,
-              });
+              } );
             } else {
-              return res.json({
+              return res.status( 401 ).json( {
                 message: "ADMIN_AUTH_ERROR_DATA",
                 token: null,
                 auht: false,
-              });
+              } );
             }
+          } else {
+            console.log( "no existe" );
+
+            return res.status( 400 ).json( { message: "NOT_EXIST_USER", token: null, auht: false, } );
           }
         }
       );
-    } else {
-      return res.json({
-        message: "DATA_NOT_VALID",
-      });
+    } catch ( error ) {
+
+      return res.sendStatus( 400 ).json( { message: "ERROR_AUTH_ADMIN", error: error } )
+
     }
   }
   public async userRegister(
@@ -161,13 +186,13 @@ abstract class LoginRegister {
     try {
       let tokenIdAcc: any = req.headers["acc-token-data"];
 
-      const verifyToken: Array<any> | any = jwt.verify(tokenIdAcc, SECRET)!;
-      console.log(verifyToken);
+      const verifyToken: Array<any> | any = jwt.verify( tokenIdAcc, SECRET )!;
+      console.log( verifyToken );
 
-      if (verifyToken?.id) {
-        
+      if ( verifyToken?.id ) {
+
       } else {
-        return res.json({ messaje: "error token" });
+        return res.json( { messaje: "error token" } );
       }
 
       const data: UserRegister = {
@@ -183,19 +208,17 @@ abstract class LoginRegister {
       };
 
       if (
-        expresiones.correo.test(data.correo) &&
-        expresiones.password.test(data.password)
+        expresiones.correo.test( data.correo ) &&
+        expresiones.password.test( data.password )
       ) {
         const roundNumber = 10;
-        const encriptarPassword = await bcrypt.genSalt(roundNumber);
-        const hasPassword = await bcrypt.hash(data.password, encriptarPassword);
+        const encriptarPassword = await bcrypt.genSalt( roundNumber );
+        const hasPassword = await bcrypt.hash( data.password, encriptarPassword );
         const conn = await conexion.connect();
-        conn.query("SELECT * FROM usuario", async (error, rows) => {
-          console.log(rows);
-
-          for (let i = 0; i < rows.length; i++) {
-            if (rows[i].correo == data.correo)
-              return res.json({ message: "ERR_MAIL_EXIST_USER", status: 302 });
+        conn.query( "SELECT * FROM usuario", async ( error, rows ) => {
+          for ( let i = 0; i < rows.length; i++ ) {
+            if ( rows[i].correo == data.correo )
+              return res.json( { message: "ERR_MAIL_EXIST_USER", status: 302 } );
           }
           await conn.query(
             `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
@@ -206,34 +229,34 @@ abstract class LoginRegister {
               data.nameRol,
               verifyToken?.id,
             ],
-            (error: Array<Error> | any, rows: any) => {
-              console.log(error);
-              console.log(rows);
-              if (error)
-                return res.json({ message: "ERROR_DATA_USER", error: error });
-              if (rows) {
+            ( error: Array<Error> | any, rows: any ) => {
+              console.log( error );
+              console.log( rows );
+              if ( error )
+                return res.json( { message: "ERROR_DATA_USER", error: error } );
+              if ( rows ) {
                 const tokenId: any = jwt.sign(
                   { id: data.correo },
                   SECRET || "tokenGenerate",
                   { expiresIn: 60 * 60 * 24 }
                 );
 
-                return res.json({
+                return res.json( {
                   message: "USER_CREATE_SUCCESFULLY",
                   tokenId,
-                });
+                } );
               }
             }
           );
-        });
+        } );
       } else {
-        return res.json({
+        return res.json( {
           message: "DATA_NOT_VALID",
           error: Error,
-        });
+        } );
       }
-    } catch (error) {
-      res.status(400).send({ tokenError: error, message: "necesita un token" });
+    } catch ( error ) {
+      res.status( 400 ).send( { tokenError: error, message: "necesita un token" } );
     }
   }
 
@@ -257,54 +280,54 @@ abstract class LoginRegister {
       conn.query(
         "SELECT * FROM admin WHERE correo=?",
         [mail.correo],
-        (error, rows) => {
-          if (error) {
-            return res.json({ message: error });
+        ( error, rows ) => {
+          if ( error ) {
+            return res.json( { message: error } );
           }
-          if (rows.length) {
-            const min = 1000;
-            const max = 9999;
-            let idAuth = Math.floor(Math.random() * (max - min + 1) + min);
+          if ( rows.length ) {
+           const min = 100000;
+            const max = 999999;
+            let idAuth = Math.floor( Math.random() * ( max - min + 1 ) + min );
 
             conn.query(
               `UPDATE admin SET codigo = ? WHERE  correo = ?`,
               [idAuth, mail.correo],
-              (error, rows) => {
-                if (error)
-                  return res.json({ message: "ERROR_CODE_WZ", err: error });
+              ( error, rows ) => {
+                if ( error )
+                  return res.json( { message: "ERROR_CODE_WZ", err: error } );
 
                 conn.query(
                   "SELECT codigo FROM admin WHERE correo = ?",
                   [mail.correo],
-                  (error, rows) => {
-                    if (error)
-                      return res.json({
+                  ( error, rows ) => {
+                    if ( error )
+                      return res.json( {
                         message: "ERROR_CODE_OBTENER_CODE_SQL",
-                      });
+                      } );
 
-                    if (rows.length) {
+                    if ( rows.length ) {
                       const resultCode = new recoveryAdminPass().sendCode(
                         rows[0].codigo,
                         mail.correo
                       );
-                      return res.json({ message: "VERIFY" });
+                      return res.status(200).json( { message: "VERIFY",email:mail.correo} );
                     } else {
-                      if (error)
-                        return res.json({
+                      if ( error )
+                        return res.json( {
                           message: "ERROR_CODE_OBTENER_CODE_SQL",
-                        });
+                        } );
                     }
                   }
                 );
               }
             );
           } else {
-            res.send("EMAIL_NOT_EXIT");
+            res.status( 401 ).json( { message: "EMAIL_NOT_EXIST" } );
           }
         }
       );
-    } catch (error) {
-      return res.status(400).json({ error });
+    } catch ( error ) {
+      return res.status( 400 ).json( { error } );
     }
   }
   public async newPassAdmin(
@@ -314,7 +337,8 @@ abstract class LoginRegister {
   ): Promise<Response | Request | any> {
     try {
       const conn = await conexion.connect();
-      const { codigo, correo, newPassword } = req.body;
+      const { codigo, correo, newPassword } = req.body.data;
+     
       const validate: newPasswordAdmin = {
         correo: correo,
         codePass: codigo,
@@ -324,13 +348,13 @@ abstract class LoginRegister {
       conn.query(
         "SELECT * FROM admin WHERE correo = ?",
         [validate.correo],
-        (error, rows) => {
-          if (error)
-            return res.json({ message: "ERROR_CODE_OBTENER_CODE_SQL", error });
-          if (rows.length) {
-            if (rows[0].codigo == validate.codePass) {
+        ( error, rows ) => {
+          if ( error )
+            return res.json( { message: "ERROR_CODE_OBTENER_CODE_SQL", error } );
+          if ( rows.length ) {
+            if ( rows[0].codigo == validate.codePass ) {
               const roundNumber = 10;
-              const encriptarPassword = bcrypt.genSaltSync(roundNumber);
+              const encriptarPassword = bcrypt.genSaltSync( roundNumber );
               const hasPassword = bcrypt.hashSync(
                 validate.newPassword,
                 encriptarPassword
@@ -338,32 +362,32 @@ abstract class LoginRegister {
               conn.query(
                 "UPDATE admin SET password = ? WHERE correo = ?",
                 [hasPassword, validate.correo],
-                (error, rows) => {
-                  if (error)
-                    return res.json({
+                ( error, rows ) => {
+                  if ( error )
+                    return res.json( {
                       message: "ERROR_CODE_OBTENER_CODE_SQL",
                       error,
-                    });
-                  if (rows) {
+                    } );
+                  if ( rows ) {
                     let codeRecovery = "";
-                    conn.query("UPDATE admin SET codigo = ? WHERE correo =?", [
+                    conn.query( "UPDATE admin SET codigo = ? WHERE correo =?", [
                       codeRecovery,
                       validate.correo,
-                    ]);
-                    return res.json({ message: "PASSWORD_CHANGE" });
+                    ] );
+                    return res.status(204).json( { message: "PASSWORD_CHANGE" } );
                   }
                 }
               );
             } else {
-              return res.json({ message: "CODE_NOT_VALID" });
+              return res.status(401).json( { message: "CODE_NOT_VALID" } );
             }
           } else {
-            return res.json({ message: "EMAIL_NOT_VALID" });
+            return res.status(400).json( { message: "EMAIL_NOT_VALID" } );
           }
         }
       );
-    } catch (error) {
-      return res.status(400).json({ error });
+    } catch ( error ) {
+      return res.status( 400 ).json( { error } );
     }
   }
   //login user
@@ -388,23 +412,23 @@ abstract class LoginRegister {
         correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
       };
       if (
-        expresiones.correo.test(data.correo) &&
-        expresiones.password.test(data.password)
+        expresiones.correo.test( data.correo ) &&
+        expresiones.password.test( data.password )
       )
         conn.query(
           "SELECT password,idUser FROM usuario WHERE correo = ?",
           [data.correo],
-          async (error: Array<Error> | any, rows: any) => {
-            if (error)
-              return res.json({ message: "ERROR_AUUTH_USER", error: error });
+          async ( error: Array<Error> | any, rows: any ) => {
+            if ( error )
+              return res.json( { message: "ERROR_AUUTH_USER", error: error } );
 
-            if (rows) {
+            if ( rows ) {
               const password = rows[0].password;
               const compararPassword: Boolean = await bcrypt.compareSync(
                 data.password,
                 password
               );
-              if (compararPassword) {
+              if ( compararPassword ) {
                 const token: any = jwt.sign(
                   {
                     id: rows[0].idUser,
@@ -412,22 +436,22 @@ abstract class LoginRegister {
                   SECRET || "tokenGenerate",
                   { expiresIn: 60 * 60 * 24 }
                 );
-                return res.json({
+                return res.json( {
                   message: "USER_AUTH_SUCCESFULL",
                   token: token,
                   auth: authUser
-                });
+                } );
               } else {
-                return res.json({
+                return res.json( {
                   message: "USER_AUTH_ERROR_DATA",
                   token: null,
                   auth: false,
-                });
+                } );
               }
             }
           }
         );
-    } catch (error) {
+    } catch ( error ) {
       return error;
     }
   }

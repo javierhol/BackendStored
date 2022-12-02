@@ -22,7 +22,12 @@ class  RouterUser extends LoginRegister
      }
 
      public recoveryPass(){
-        router.post( "/recovery", this. recoveryPassword)
+        router.post( "/recovery", this.recoveryPassword)
+        return router;
+   }
+   
+      public veryfiCod(){
+        router.post( "/recoverycode", this.veryfidCode)
         return router;
      }
      public newPassword(){

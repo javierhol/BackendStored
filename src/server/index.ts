@@ -7,11 +7,11 @@ import fileUpload from "express-fileupload";
 const AppServer: express.Application = express();
 const startServer = () => {
     try {
-        const urlConnectionAcceso:string = "http://localhost:3001"
+        const urlConnectionAcceso:string = "http://localhost:3000/*"
         const statusCors:number = 200;
         const port: Number = 8080;
         AppServer.use(cors({
-            origin: [urlConnectionAcceso, 'https://www.google.com/*'],
+            origin: [urlConnectionAcceso, 'http://localhost:3000'],
             methods: ['GET','POST','DELETE','UPDATE','PUT','PATCH'],
             optionsSuccessStatus:statusCors
         }));
@@ -37,6 +37,7 @@ const startServer = () => {
         AppServer.use(new RouterUser().Login());  
         AppServer.use(new RouterUser().recoveryPass())
         AppServer.use(new RouterUser().newPassword())
+        AppServer.use(new RouterUser().veryfiCod())
     } catch ( error:any ) {
         
         throw new Error( error );
