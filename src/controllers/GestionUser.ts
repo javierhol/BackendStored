@@ -136,7 +136,7 @@ abstract class LoginRegister {
         [data.correo],
         async ( error: Array<Error> | any, rows: any ) => {
           if ( error )
-            return res.json( { message: "ERROR_AUTH_ADMIN", error: error } );
+            return res.status(400).json( { message: "ERROR_DB", error: error } );
           if ( rows.length > 0 ) {
             const password = rows[0].password;
             
@@ -160,6 +160,8 @@ abstract class LoginRegister {
                 rol: rows[0].rol,
               } );
             } else {
+              console.log("hola");
+              
               return res.status( 401 ).json( {
                 message: "ADMIN_AUTH_ERROR_DATA",
                 token: null,
@@ -167,7 +169,6 @@ abstract class LoginRegister {
               } );
             }
           } else {
-            console.log( "no existe" );
 
             return res.status( 400 ).json( { message: "NOT_EXIST_USER", token: null, auht: false, } );
           }
@@ -175,7 +176,7 @@ abstract class LoginRegister {
       );
     } catch ( error ) {
 
-      return res.sendStatus( 400 ).json( { message: "ERROR_AUTH_ADMIN", error: error } )
+      return res.status(500).json( { message: "ERROR_AUTH_ADMIN", error: error } )
 
     }
   }

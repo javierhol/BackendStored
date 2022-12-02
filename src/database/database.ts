@@ -7,7 +7,7 @@ import {HOST,DBNAME,PASSWORD,USER,PORTDB,LIMIT_CONNECION} from "../config/config
     private readonly password?:(string | any) = PASSWORD;
     protected readonly database:(string | any)  = DBNAME;
     private readonly charset:(string | any)  = "utf8";
-    private readonly port: (Number | any) = 3307;
+    private readonly port: (Number | any) = 3306;
     private readonly max:(Number|any)=LIMIT_CONNECION;
 
      public async connect() {
@@ -19,8 +19,6 @@ import {HOST,DBNAME,PASSWORD,USER,PORTDB,LIMIT_CONNECION} from "../config/config
             database: this.database,
             charset: this.charset,
             port: this.port,
-           
-            
         })
         return conenct;
         

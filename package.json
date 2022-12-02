@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@types/uuid": "^8.3.4",
+    "moment-es6": "^1.0.0",
     "mysql2": "^2.3.3",
     "tedious": "^15.1.0"
   }
