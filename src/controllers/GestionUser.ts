@@ -46,12 +46,13 @@ abstract class LoginRegister {
   ): Promise<Response | Request | any> {
     try {
       const data: PersonRegister = {
-        correo: req.body?.correo,
-        password: req.body.password,
+        correo: req.body.postDataAdmin.correo,
+        password: req.body.postDataAdmin.password,
         authCuenta: false,
         token: req.body.token,
         refreshToken: req.body.refreshToken,
-        nameRol: "admin",
+        nameRol: "admin"
+        
       };
       const expresiones = {
         password: /^.{4,20}$/,
@@ -71,7 +72,7 @@ abstract class LoginRegister {
         conn.query( "SELECT * FROM admin", async ( error, rows ) => {
           for ( let i = 0; i < rows.length; i++ ) {
             if ( rows[i].correo == data.correo )
-              return res.json( { message: "ERR_EXIST_EMAIL", state: 302 } );
+              return res.status(400).json( { message: "ERR_EXIST_EMAIL" } );
           }
           await conn.query(
             `INSERT INTO admin (correo,password,authCuenta,estado) VALUES (?,?,?,?)`,
