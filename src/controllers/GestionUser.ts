@@ -46,7 +46,7 @@ abstract class LoginRegister {
   ): Promise<Response | Request | any> {
     try {
       const data: PersonRegister = {
-        correo: req.body.postDataAdmin.correo,
+        correo: req.body.postDataAdmin.email,
         password: req.body.postDataAdmin.password,
         authCuenta: false,
         token: req.body.token,
@@ -54,15 +54,7 @@ abstract class LoginRegister {
         nameRol: "admin"
         
       };
-      const expresiones = {
-        password: /^.{4,20}$/,
-        correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-      };
-
-      if (
-        expresiones.correo.test( data.correo ) &&
-        expresiones.password.test( data.password )
-      ) {
+      
         const roundNumber = 10;
         const encriptarPassword = await bcrypt.genSalt( roundNumber );
         const hasPassword = await bcrypt.hash( data.password, encriptarPassword );
@@ -75,38 +67,36 @@ abstract class LoginRegister {
               return res.status(400).json( { message: "ERR_EXIST_EMAIL" } );
           }
           await conn.query(
-            `INSERT INTO admin (correo,password,authCuenta,estado) VALUES (?,?,?,?)`,
-            [data.correo, hasPassword, state, estado],
+            `INSERT INTO admin (correo,password,authCuenta,estado ,rol) VALUES (?,?,?,?,?)`,
+            [data.correo, hasPassword, state, estado,data.nameRol],
             ( error: Array<Error> | any, rows: any ) => {
-              console.log( error );
-              console.log( rows );
               if ( error ) {
-                return res.json( { message: "ERROR_DATA_ADMIN", error: error } );
+                return res.status(401).json( { message: "ERROR_DATA_ADMIN", error: error } );
               }
               if ( rows ) {
+                console.log( rows );
+                
                 const token: any = jwt.sign(
                   { id: data.correo },
                   SECRET || "tokenGenerate",
                   { expiresIn: 60 * 60 * 24 }
                 );
                 const resultEmail = new sendMailAdmin().sendMailer( data.correo );
-
-                return res.json( {
+                  console.log("data creada");
+                  
+                return res.status(200).json( {
                   message: "USER_CREATE_SUCCESFULL",
                   token,
                   auht: data.authCuenta,
                 } );
+              }else{
+                return res.status(400).json( { message: "ERROR_DATA_ADMIN" } );
               }
             }
           );
         } );
-      } else {
-        return res.json( {
-          message: "DATA_NOT_VALID",
-        } );
-      }
     } catch ( error: any ) {
-      throw new Error( error );
+    return res.status(500).json({message:"ERROR_SERVER"})
     }
   }
 
@@ -138,7 +128,7 @@ abstract class LoginRegister {
         async ( error: Array<Error> | any, rows: any ) => {
           if ( error )
             return res.status(400).json( { message: "ERROR_DB", error: error } );
-          if ( rows.length > 0 ) {
+          if ( rows) {
             const password = rows[0].password;
             
             const passVerify: Boolean = await bcrypt.compare(
@@ -161,7 +151,7 @@ abstract class LoginRegister {
                 rol: rows[0].rol,
               } );
             } else {
-              console.log("hola");
+            
               
               return res.status( 401 ).json( {
                 message: "ADMIN_AUTH_ERROR_DATA",
