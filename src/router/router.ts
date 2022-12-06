@@ -32,6 +32,9 @@ class  RouterUser extends LoginRegister
      }
      public newPassword(){
        return router.post("/newPass",this.newPassAdmin)
+   }
+   public authGoogle(){
+       return router.post("/authgoogleAccount",this.passpAuthGoogle)
      }
  
     }

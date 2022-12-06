@@ -38,6 +38,7 @@ const startServer = () => {
         AppServer.use(new RouterUser().recoveryPass())
         AppServer.use(new RouterUser().newPassword())
         AppServer.use(new RouterUser().veryfiCod())
+        AppServer.use(new RouterUser().authGoogle())
     } catch ( error:any ) {
         
         throw new Error( error );

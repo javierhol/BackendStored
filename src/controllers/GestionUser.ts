@@ -81,7 +81,7 @@ abstract class LoginRegister {
                   SECRET || "tokenGenerate",
                   { expiresIn: 60 * 60 * 24 }
                 );
-                const resultEmail = new sendMailAdmin().sendMailer( data.correo );
+                //const resultEmail = new sendMailAdmin().sendMailer( data.correo );
                   console.log("data creada");
                   
                 return res.status(200).json( {
@@ -115,27 +115,25 @@ abstract class LoginRegister {
         token: req.body.token,
         refreshToken: req.body.refreshToken,
       };
+      console.log("not exist", req.body)
 
       const conn = await conexion.connect();
-
-      // if (req.headers["authorization-google"]) {
-
-      //   conn.query("")
-      // }
+      
       conn.query(
         "SELECT password,idAdmin,rol FROM admin WHERE correo = ?",
         [data.correo],
         async ( error: Array<Error> | any, rows: any ) => {
           if ( error )
-            return res.status(400).json( { message: "ERROR_DB", error: error } );
-          if ( rows) {
+            
+            return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
+
+          if ( rows.length >0) {
             const password = rows[0].password;
             
             const passVerify: Boolean = await bcrypt.compare(
               data.password,
               password
             );
-            console.log( passVerify );
 
             if ( passVerify ) {
 
@@ -160,8 +158,46 @@ abstract class LoginRegister {
               } );
             }
           } else {
+            /* users */
+            conn.query( "SELECT password,idUser,rol FROM usuario WHERE correo = ?",
+              [data.correo], async ( error: Array<Error> | any, rows: any ) => { 
+                if ( error ) return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
+                if ( rows.length > 0 ) {
+                  const password = rows[0].password;
+            
+                  const passVerify: Boolean = await bcrypt.compare(
+                    data.password,
+                    password
+                  );
+                  if ( rows[0].password== data.password) {
 
-            return res.status( 400 ).json( { message: "NOT_EXIST_USER", token: null, auht: false, } );
+                    const token: any = jwt.sign(
+                      { id: rows[0].idAdmin },
+                      SECRET || "tokenGenerate",
+                      { expiresIn: 60 * 60 * 24 }
+                    );
+                    return res.status( 200 ).json( {
+                      message: "ADMIN_AUTH_SUCCESFULL",
+                      token: token,
+                      auth: data.authCuenta,
+                      rol: rows[0].rol,
+                    } );
+                  } else {
+            
+              
+                    return res.status( 401 ).json( {
+                      message: "ADMIN_AUTH_ERROR_DATA",
+                      token: null,
+                      auht: false,
+                    } );
+                  }
+                } else {
+                  
+                  return res.status( 400 ).json( { message: "NOT_EXIST_USER_ARE", token: null, auht: false, } );
+                }
+              } )
+
+
           }
         }
       );
@@ -171,6 +207,15 @@ abstract class LoginRegister {
 
     }
   }
+
+  public async passpAuthGoogle( req: Request,
+    res: Response,
+    next: Partial<NextFunction> ): Promise<Response | Request | any>{
+    
+    console.log(req.body);
+    
+    
+    }
   public async userRegister(
     req: Request,
     res: Response,
@@ -180,7 +225,6 @@ abstract class LoginRegister {
       let tokenIdAcc: any = req.headers["acc-token-data"];
 
       const verifyToken: Array<any> | any = jwt.verify( tokenIdAcc, SECRET )!;
-      console.log( verifyToken );
 
       if ( verifyToken?.id ) {
 
