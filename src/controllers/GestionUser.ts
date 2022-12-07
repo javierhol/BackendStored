@@ -20,10 +20,6 @@ abstract class LoginRegister {
   public async veryfidCode(req: Request,
     res: Response,
     next: Partial<NextFunction>):Promise<Response | Request | any> {
-  
-    
-    console.log(req.body);
-    
     const conn = await conexion.connect();
     conn.query( "SELECT codigo FROM admin Where correo =?",[req.body.data.email], async ( error, rows ) => {
       for ( let i = 0; i < rows.length; i++ ) {
@@ -211,10 +207,73 @@ abstract class LoginRegister {
   public async passpAuthGoogle( req: Request,
     res: Response,
     next: Partial<NextFunction> ): Promise<Response | Request | any>{
-    
-    console.log(req.body);
-    
-    
+    try {
+      const conn = await conexion.connect();
+      const {email, name, picture} = req.body.data;
+      console.log( email, name, picture );
+      conn.query( "SELECT * FROM admin  Where correo = ?",
+        [email], async ( error: Array<Error> | any, rows: any ) => {
+
+          if ( error ) return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
+         console.log(rows);
+         let rol ="admin"
+          if ( rows.length > 0 ) {
+                 console.log("exist");
+                 
+                 conn.query("SELECT idAdmin,rol FROM admin WHERE correo = ?",
+                         [email], async ( error: Array<Error> | any, rows: any ) => {
+                            if ( error ) return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
+                           if ( rows.length > 0 ) {
+                              const token: any = jwt.sign(
+                                    { id: rows[0].idAdmin },
+                                    SECRET || "tokenGenerate",
+                                    { expiresIn: 60 * 60 * 24 }
+                             );
+                             return res.status( 200 ).json( {
+                               message: "ADMIN_AUTH_SUCCESFULL_GOOGLE",
+                               token: token,
+                               auth: true,
+                               rol: rows[0].rol,
+                                
+                             });
+                             
+                           } else {
+                             return res.status( 400 ).json( { message: "ERROR_DATA_GOOGLE" } );
+                           }
+                         })
+          } else {
+            conn.query( "INSERT INTO admin (correo, nombre, imgUrl,rol) VALUES (?,?,?,?)",
+                   [email, name, picture,rol], async ( error: Array<Error> | any, rows: any ) => {
+                     if ( rows ) {
+                        
+                       conn.query("SELECT idAdmin,rol FROM admin WHERE correo = ?",
+                         [email], async ( error: Array<Error> | any, rows: any ) => {
+                            if ( error ) return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
+                           if ( rows.length > 0 ) {
+                              const token: any = jwt.sign(
+                                    { id: rows[0].idAdmin },
+                                    SECRET || "tokenGenerate",
+                                    { expiresIn: 60 * 60 * 24 }
+                             );
+                             return res.status( 200 ).json( {
+                               message: "ADMIN_AUTH_SUCCESFULL_GOOGLE",
+                               token: token,
+                               auth: true,
+                               rol: rows[0].rol,
+                                
+                             });
+                             
+                           } 
+                         })
+                      }
+
+                 })
+         }
+      })       
+    } catch ( error ) {
+      return res.status(500).json( { message: "ERROR_AUTH_ADMIN", error: error } )
+      
+    }
     }
   public async userRegister(
     req: Request,
