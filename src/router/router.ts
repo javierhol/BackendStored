@@ -17,7 +17,7 @@ class  RouterUser extends LoginRegister
         return router;       
      }
      public registerUser(){
-        router.post( "/registerUser", this.userRegister);
+        router.post( "/registerUser", this.loginUser);
         return router;       
      }
 

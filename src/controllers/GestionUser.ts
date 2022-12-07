@@ -159,13 +159,13 @@ abstract class LoginRegister {
               [data.correo], async ( error: Array<Error> | any, rows: any ) => { 
                 if ( error ) return res.status( 400 ).json( { message: "ERROR_DB", error: error } );
                 if ( rows.length > 0 ) {
-                  const password = rows[0].password;
+                const password = rows[0].password;
             
                   const passVerify: Boolean = await bcrypt.compare(
                     data.password,
                     password
                   );
-                  if ( rows[0].password== data.password) {
+                  if ( passVerify) {
 
                     const token: any = jwt.sign(
                       { id: rows[0].idAdmin },
@@ -301,23 +301,21 @@ abstract class LoginRegister {
     next: Partial<NextFunction>
   ): Promise<Response | Request | any> {
     try {
+      let tokenIdAcc: any = req.headers["acc-token-data"];
+      const verifyToken: Array<any> | any = jwt.verify( tokenIdAcc, SECRET )!;
       const data: login = {
-        correo: req.body.correo,
-        password: req.body.password,
+        correo: req.body.postDataUserRegister.email ,
+        password: req.body.postDataUserRegister.password,
         authCuenta: true,
         token: req.body.token,
         refreshToken: req.body.refreshToken,
       };
-
-      const conn = await conexion.connect();
-      const expresiones = {
-        password: /^.{4,20}$/,
-        correo: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
-      };
-      if (
-        expresiones.correo.test( data.correo ) &&
-        expresiones.password.test( data.password )
-      ) {
+      
+      console.log(req.body);
+      
+      if ( verifyToken?.id ) {
+        console.log(verifyToken?.id);
+        
         const roundNumber = 10;
         const encriptarPassword = await bcrypt.genSalt( roundNumber );
         const hasPassword = await bcrypt.hash( data.password, encriptarPassword );
@@ -328,13 +326,14 @@ abstract class LoginRegister {
               return res.json( { message: "ERR_MAIL_EXIST_USER", status: 302 } );
           }
           await conn.query(
-            `INSERT INTO usuario (nombre,correo,password,nameRol,idAdminUser) VALUES (?,?,?,?,?)`,
+            `INSERT INTO usuario (correo,password ,rol, estado, idAdminUser) VALUES (?,?,?,?,?)`,
             [
-              // data.nombre,
-              // data.correo,
-              // hasPassword,
-              // data.nameRol,
-              // verifyToken?.id,
+              
+              data.correo,
+               hasPassword, 
+               req.body.postDataUserRegister.rol,
+               req.body.postDataUserRegister.estado,           
+               verifyToken?.id,
             ],
             ( error: Array<Error> | any, rows: any ) => {
               console.log( error );
@@ -356,14 +355,13 @@ abstract class LoginRegister {
             }
           );
         } );
-      } else {
-        return res.json( {
-          message: "DATA_NOT_VALID",
-          error: Error,
-        } );
+      }else{
+        return res.status(401).json({message:"N0T_ALLOWED"})
       }
+       
+      
     } catch ( error ) {
-      res.status( 400 ).send( { tokenError: error, message: "necesita un token" } );
+      res.status( 400 ).send( { message: "NOT_AUTORIZED" } );
     }
   }
 
