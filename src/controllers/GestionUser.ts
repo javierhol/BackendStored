@@ -496,7 +496,9 @@ abstract class LoginRegister {
         codePass: codigo,
         newPassword: newPassword,
       };
-      // actualizar contraseña
+      console.log(req.body);
+      
+      
       conn.query(
         "SELECT * FROM admin WHERE correo = ?",
         [validate.correo],
